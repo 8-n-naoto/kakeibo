@@ -4,7 +4,7 @@
 
 @section('content')
     <h1 class="text-xl font-bold mb-2">レシート・明細を画像から読み込み</h1>
-    <p class="text-sm text-slate-500 mb-6">レシートや明細書の写真をアップロードすると、Claude(AI)が日付・店名・金額・カテゴリ候補を自動で読み取ります。内容は次の画面で確認・修正してから登録されます。</p>
+    <p class="text-sm text-slate-500 mb-6">レシートや明細書の写真をアップロードすると、AIが日付・店名・金額・カテゴリ候補を自動で読み取ります。内容は次の画面で確認・修正してから登録されます。</p>
 
     <form method="POST" action="{{ route('receipts.store') }}" enctype="multipart/form-data"
           class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-w-xl">

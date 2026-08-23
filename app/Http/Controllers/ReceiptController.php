@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\ReceiptImage;
 use App\Models\Transaction;
-use App\Services\ClaudeReceiptParser;
+use App\Services\ReceiptParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -18,9 +18,9 @@ class ReceiptController extends Controller
     }
 
     /**
-     * 画像をアップロードし、Claude APIで解析して確認画面へ。
+     * 画像をアップロードし、AI(Gemini/Claude)で解析して確認画面へ。
      */
-    public function store(Request $request, ClaudeReceiptParser $parser)
+    public function store(Request $request, ReceiptParser $parser)
     {
         $request->validate([
             'image' => ['required', 'image', 'max:10240'],

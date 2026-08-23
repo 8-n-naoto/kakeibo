@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\ReceiptImage;
 use App\Models\Transaction;
-use App\Services\ClaudeReceiptParser;
+use App\Services\ReceiptParser;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -27,7 +27,7 @@ class ReceiptUploadTest extends TestCase
         Storage::fake('public');
         Category::factory()->create(['name' => '食費']);
 
-        $this->instance(ClaudeReceiptParser::class, Mockery::mock(ClaudeReceiptParser::class, function ($mock) {
+        $this->instance(ReceiptParser::class, Mockery::mock(ReceiptParser::class, function ($mock) {
             $mock->shouldReceive('parse')->once()->andReturn([
                 'transaction_date' => '2026-08-01',
                 'shop_name' => 'スーパーライフ',
@@ -36,7 +36,7 @@ class ReceiptUploadTest extends TestCase
                 'suggested_category' => '食費',
                 'items' => [['name' => '牛乳', 'amount' => 200]],
                 'memo' => null,
-                'raw_response' => ['id' => 'msg_test'],
+                'raw_response' => ['id' => 'interaction_test'],
             ]);
         }));
 
@@ -75,7 +75,7 @@ class ReceiptUploadTest extends TestCase
     {
         Storage::fake('public');
 
-        $this->instance(ClaudeReceiptParser::class, Mockery::mock(ClaudeReceiptParser::class, function ($mock) {
+        $this->instance(ReceiptParser::class, Mockery::mock(ReceiptParser::class, function ($mock) {
             $mock->shouldReceive('parse')->andThrow(new RuntimeException('APIエラー'));
         }));
 

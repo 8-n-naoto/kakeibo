@@ -1,6 +1,6 @@
 # 家計簿アプリ（Laravel 13 / PHP 8.3+）
 
-レシート画像を Claude API で読み取って家計簿につけ、月の収支・予算・資産を管理するためのアプリです。
+レシート画像を AI（既定は Gemini API。Claude API にも切替可）で読み取って家計簿につけ、月の収支・予算・資産を管理するためのアプリです。
 
 ## 動作要件
 
@@ -26,7 +26,7 @@ cp .env.example .env
 php artisan key:generate
 
 # 3. .env の DB_DATABASE / DB_USERNAME / DB_PASSWORD を環境に合わせて編集
-#    ANTHROPIC_API_KEY にレシート解析用のAPIキーを設定（レシート機能を使わないなら空でも可）
+#    GEMINI_API_KEY にレシート解析用のAPIキーを設定（レシート機能を使わないなら空でも可）
 
 # 4. DBを作成してマイグレーション＋初期カテゴリ投入
 mysql -u root -p -e "CREATE DATABASE kakeibo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
@@ -70,17 +70,45 @@ composer test                          # 設定キャッシュを消してから
 | `tests/Feature/TransactionImportTest.php` | カード明細CSVの取込（Shift_JIS・重複検知含む） |
 | `tests/Feature/TransactionExportTest.php` | 取引のCSV出力 |
 | `tests/Feature/ReceiptUploadTest.php` | レシート画像のアップロードと登録（API はモック） |
+| `tests/Feature/GeminiReceiptParserTest.php` | Gemini API 応答の解析（`Http::fake`） |
 | `tests/Feature/ClaudeReceiptParserTest.php` | Claude API 応答の解析（`Http::fake`） |
+| `tests/Feature/ReceiptParserDriverTest.php` | `RECEIPT_AI_DRIVER` によるAIの切替 |
 | `tests/Feature/AssetSnapshotTest.php` | 資産スナップショット |
 | `tests/Feature/SavingsGoalTest.php` | 貯蓄目標 |
 | `tests/Feature/InvestmentAccountTest.php` | NISA/iDeCo |
 | `tests/Feature/DashboardEngelCoefficientTest.php` | エンゲル係数 |
 
+## レシート解析に使うAIの設定
+
+レシート画像の解析はどちらのAIでも動きます。`.env` の `RECEIPT_AI_DRIVER` で切り替えます（既定は `gemini`）。
+
+| 変数 | 既定値 | 説明 |
+| --- | --- | --- |
+| `RECEIPT_AI_DRIVER` | `gemini` | `gemini` または `claude` |
+| `GEMINI_API_KEY` | （空） | https://aistudio.google.com/apikey で発行 |
+| `GEMINI_MODEL` | `gemini-2.5-flash` | 精度を上げたいなら `gemini-3.7-flash`、安く済ませたいなら `gemini-3.5-flash-lite` |
+| `GEMINI_API_URL` | Interactions API のURL | 通常は変更不要。エンドポイント仕様が変わったときだけ上書き |
+| `GEMINI_API_REVISION` | `2026-05-20` | 同上。空にするとヘッダーを送らない |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | — | `RECEIPT_AI_DRIVER=claude` のときのみ使用 |
+
+`.env` を変更したら設定キャッシュを消してください。
+
+```bash
+php artisan config:clear
+# php-fpm 経由で動かしている場合は
+sudo systemctl reload php-fpm
+```
+
+実装は `app/Services/ReceiptParser.php`（インターフェース）を `GeminiReceiptParser` と
+`ClaudeReceiptParser` が実装し、`AppServiceProvider` が driver に応じてどちらかを注入します。
+プロンプト・応答JSONの取り出し・戻り値の整形は `AbstractReceiptParser` に共通化してあるので、
+別のAIを足す場合もこのクラスを継承して API 呼び出しだけ書けば済みます。
+
 ## 機能
 
 ### 入力
 - 手動入力（日付・種別・カテゴリ・店名・メモ・金額）
-- レシート画像のアップロード → Claude API で解析 → 確認画面で修正して登録
+- レシート画像のアップロード → AI（Gemini / Claude）で解析 → 確認画面で修正して登録
 - クレジットカード明細CSVの取込（Shift_JIS / UTF-8 自動判定、列の自動検出、店名からのカテゴリ推測、重複候補の自動チェック解除）
 
 ### 集計・管理
@@ -100,7 +128,8 @@ app/Http/Controllers/   画面ごとのコントローラ
 app/Models/             Eloquent モデル
 app/Services/           BudgetService（予算集計）/ MonthlyReportService（固定変動・前年比）
                         CsvImportService（明細CSV解析）/ TransactionCsvExporter（CSV出力）
-                        ClaudeReceiptParser（レシート画像の解析）
+                        ReceiptParser（インターフェース）/ AbstractReceiptParser（共通処理）
+                        GeminiReceiptParser・ClaudeReceiptParser（レシート画像の解析）
 database/migrations/    テーブル定義
 database/seeders/       初期カテゴリ（固定費/変動費の初期分類つき）
 resources/views/        Blade テンプレート
