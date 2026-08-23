@@ -14,7 +14,7 @@ return [
     // Gemini API — レシート画像の解析(OCR)に使用（既定）
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
-        'model' => env('GEMINI_MODEL', 'gemini-2.5-flash'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.6-flash'),
         'api_url' => env('GEMINI_API_URL', 'https://generativelanguage.googleapis.com/v1beta/interactions'),
         'api_revision' => env('GEMINI_API_REVISION', '2026-05-20'),
     ],

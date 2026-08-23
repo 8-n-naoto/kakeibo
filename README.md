@@ -86,7 +86,7 @@ composer test                          # 設定キャッシュを消してから
 | --- | --- | --- |
 | `RECEIPT_AI_DRIVER` | `gemini` | `gemini` または `claude` |
 | `GEMINI_API_KEY` | （空） | https://aistudio.google.com/apikey で発行 |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | 精度を上げたいなら `gemini-3.7-flash`、安く済ませたいなら `gemini-3.5-flash-lite` |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | 精度を上げたいなら `gemini-3.7-flash`、安く済ませたいなら `gemini-3.5-flash-lite` |
 | `GEMINI_API_URL` | Interactions API のURL | 通常は変更不要。エンドポイント仕様が変わったときだけ上書き |
 | `GEMINI_API_REVISION` | `2026-05-20` | 同上。空にするとヘッダーを送らない |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | — | `RECEIPT_AI_DRIVER=claude` のときのみ使用 |
