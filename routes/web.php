@@ -25,10 +25,14 @@ Route::redirect('/', '/dashboard');
 // ログを溢れさせないよう件数を絞る。
 Route::post(CspReportController::path(), CspReportController::class)
     ->middleware('throttle:30,1')
-    // レポートにCookieは付かない。セッションを開始すると1件ごとに空のセッションが増える
+    // レポートにCookieは付かない。セッションを開始すると1件ごとに空のセッションが増える。
+    // CSRF検証も外す。除外リストに入れるだけでは足りない（ミドルウェア自体は動き続け、
+    // 応答に XSRF-TOKEN クッキーを足そうとして $request->session() を触るため、
+    // StartSession を外したこの経路は「Session store not set on request」で 500 になる）。
     ->withoutMiddleware([
         \Illuminate\Session\Middleware\StartSession::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ])
     ->name('csp-report');
 

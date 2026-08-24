@@ -126,7 +126,11 @@ CSP_CODE=$(curl -s -b "$COOKIE_JAR" -o /dev/null -w '%{http_code}' \
   -X POST -H 'Content-Type: application/csp-report' \
   --data '{"csp-report":{"violated-directive":"script-src"}}' \
   "http://127.0.0.1:$PORT/csp-report")
-echo "CSP違反レポートの受け口: HTTP $CSP_CODE (204ならOK / 419ならCSRF除外が効いていない)" >> "$LOG"
+echo "CSP違反レポートの受け口: HTTP $CSP_CODE (204ならOK / 419ならCSRF除外が効いていない / 500はセッション無しの経路)" >> "$LOG"
+# ここが 204 以外だと、CSPの違反レポートは1件も届かない。
+# 「違反が出ないことを確かめてから強制にする」運用が成り立たなくなるので、異常として数える。
+EXTRA_FAIL=0
+[ "$CSP_CODE" = "204" ] || EXTRA_FAIL=$((EXTRA_FAIL+1))
 
 # セキュリティヘッダーが付いているか（ログイン画面と404の両方）
 {
@@ -139,7 +143,7 @@ echo "CSP違反レポートの受け口: HTTP $CSP_CODE (204ならOK / 419なら
 } >> "$LOG" 2>&1
 
 PATHS="/manifest.webmanifest /sw.js /offline.html /icons/icon-192.png /dashboard /reports /reports/2026 /transactions /transactions/create /transactions/export /transactions?keyword=test&type=expense&sort=amount_desc /imports /imports/batches /receipts/upload /receipts/pending /merchant-rules /recurring /recurring/create /budgets /budgets/create /budgets/suggestions /categories /categories/create /assets /assets/create /savings-goals /savings-goals/create /investment-accounts /investment-accounts/create"
-FAIL=0
+FAIL=${EXTRA_FAIL:-0}
 {
   printf '%-6s %s\n' "STATUS" "PATH"
   for p in $PATHS; do
@@ -172,9 +176,16 @@ SUMMARY="$OUT_DIR/summary.txt"
 
   printf -- '-- 件数 --\n'
   echo "構文エラー: $SYNTAX_NG 件"
-  echo "HTTP異常  : $FAIL 件"
+  echo "HTTP異常  : $FAIL 件（画面 + CSP受け口）"
   # artisan test(Collision) の出力は行頭にスペースが入るので \s* を入れる
-  grep -E '^\s*(Tests:|Duration:)' "$LOG" | tail -4
+  # 「Tests:」が1行も無い ＝ テストが走っていない。失敗0件と見分けが付かないので明示する。
+  if grep -qE '^\s*Tests:' "$LOG"; then
+    grep -E '^\s*(Tests:|Duration:)' "$LOG" | tail -4
+  else
+    echo '!! 自動テストが1件も走っていません（php artisan test が実行できていない）。'
+    echo '   下の「失敗したテスト」が空でも、それは合格を意味しません。'
+    echo '   → vendor を dev 込みで入れ直してください: composer install'
+  fi
 
   printf '\n-- 失敗したテスト --\n'
   # Collision は失敗を "⨯ テスト名" の形で出す（見つからなければ素の PHPUnit 形式も拾う）
@@ -182,8 +193,10 @@ SUMMARY="$OUT_DIR/summary.txt"
     grep -E '^\s*(⨯|✕)' "$LOG" | head -40
   elif grep -qE '^[0-9]+\) ' "$LOG"; then
     grep -E '^[0-9]+\) ' "$LOG" | head -40
-  else
+  elif grep -qE '^\s*Tests:' "$LOG"; then
     echo "(なし)"
+  else
+    echo "(判定不能: テストが実行されていません)"
   fi
 
   printf '\n-- 失敗の詳細（先頭120行） --\n'
