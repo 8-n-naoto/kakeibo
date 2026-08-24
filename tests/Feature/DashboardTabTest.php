@@ -17,7 +17,7 @@ class DashboardTabTest extends TestCase
 {
     use RefreshDatabase;
 
-    private function seed(): void
+    private function seedData(): void
     {
         $category = Category::factory()->create(['name' => '食費', 'expense_nature' => 'variable']);
 
@@ -52,7 +52,7 @@ class DashboardTabTest extends TestCase
 
     public function test_どのタブの中身も1回のリクエストで返る(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $response = $this->get(route('dashboard', ['month' => '2026-08']));
 
@@ -70,7 +70,7 @@ class DashboardTabTest extends TestCase
 
     public function test_集計データはこれまでどおり渡される(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $response = $this->get(route('dashboard', ['month' => '2026-08']));
 

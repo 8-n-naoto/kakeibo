@@ -63,7 +63,7 @@ class BackupTest extends TestCase
         return app(BackupService::class);
     }
 
-    private function seed(): array
+    private function seedData(): array
     {
         $food = Category::factory()->create(['name' => '食費']);
 
@@ -108,7 +108,7 @@ class BackupTest extends TestCase
 
     public function test_バックアップを作ると各テーブルのCSVができる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
 
@@ -126,7 +126,7 @@ class BackupTest extends TestCase
 
     public function test_manifestに件数と注意書きが入る(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -140,7 +140,7 @@ class BackupTest extends TestCase
 
     public function test_バックアップから復元すると元に戻る(): void
     {
-        $seeded = $this->seed();
+        $seeded = $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -200,7 +200,7 @@ class BackupTest extends TestCase
 
     public function test_画像も含めてバックアップできる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir, withImages: true);
         $dir = $this->extractIfNeeded($result['path']);
@@ -211,7 +211,7 @@ class BackupTest extends TestCase
 
     public function test_画像も復元される(): void
     {
-        $seeded = $this->seed();
+        $seeded = $this->seedData();
         $path = $seeded['receipt']->path;
 
         $result = $this->service()->create($this->workDir, withImages: true);
@@ -248,7 +248,7 @@ class BackupTest extends TestCase
 
     public function test_artisanコマンドでバックアップできる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $this->artisan('kakeibo:backup', ['--path' => $this->workDir])->assertExitCode(0);
 
@@ -257,7 +257,7 @@ class BackupTest extends TestCase
 
     public function test_復元コマンドは確認を求める(): void
     {
-        $this->seed();
+        $this->seedData();
         $this->artisan('kakeibo:backup', ['--path' => $this->workDir])->assertExitCode(0);
 
         $created = glob($this->workDir.'/kakeibo-backup-*');
@@ -274,7 +274,7 @@ class BackupTest extends TestCase
             $this->markTestSkipped('ext-zip が無い環境では zip 化しない');
         }
 
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
 
@@ -325,7 +325,7 @@ class BackupTest extends TestCase
 
     public function test_バックアップコマンドはkeepで世代を絞れる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         foreach (['20250101-000000', '20250201-000000'] as $stamp) {
             touch($this->workDir.'/kakeibo-backup-'.$stamp.'.zip');
@@ -341,7 +341,7 @@ class BackupTest extends TestCase
 
     public function test_keep0なら世代管理しない(): void
     {
-        $this->seed();
+        $this->seedData();
 
         touch($this->workDir.'/kakeibo-backup-20250101-000000.zip');
 
@@ -352,7 +352,7 @@ class BackupTest extends TestCase
 
     public function test_manifestに形式バージョンが入る(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -390,7 +390,7 @@ class BackupTest extends TestCase
     #[DataProvider('厄介な値')]
     public function test_厄介な値もそのまま戻る(string $memo): void
     {
-        $seeded = $this->seed();
+        $seeded = $this->seedData();
         $seeded['transaction']->forceFill(['memo' => $memo])->save();
 
         $result = $this->service()->create($this->workDir);
@@ -405,7 +405,7 @@ class BackupTest extends TestCase
 
     public function test_件数がmanifestと合わなければ復元せずに元のデータを残す(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -431,7 +431,7 @@ class BackupTest extends TestCase
 
     public function test_列が増えていたら何も消さずに止まる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -457,7 +457,7 @@ class BackupTest extends TestCase
 
     public function test_新しすぎる形式のバックアップは拒否する(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -474,7 +474,7 @@ class BackupTest extends TestCase
 
     public function test_画像を含まないバックアップは復元時に知らせる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir, withImages: false);
 
@@ -486,7 +486,7 @@ class BackupTest extends TestCase
 
     public function test_画像を含むバックアップでは警告しない(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir, withImages: true);
 
@@ -569,7 +569,7 @@ class BackupTest extends TestCase
 
     public function test_NULL許容の列が増えていても復元できる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -611,7 +611,7 @@ class BackupTest extends TestCase
 
     public function test_テーブルが増える前のバックアップも復元できる(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
@@ -632,7 +632,7 @@ class BackupTest extends TestCase
 
     public function test_manifestにあるのにCSVが無ければ壊れている扱いにする(): void
     {
-        $this->seed();
+        $this->seedData();
 
         $result = $this->service()->create($this->workDir);
         $dir = $this->extractIfNeeded($result['path']);
