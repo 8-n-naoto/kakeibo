@@ -174,6 +174,14 @@ class BackupService
             ));
         }
 
+        // tables が無い manifest は「空のバックアップ」ではなく、書き出しの途中で
+        // 落ちた残骸か別物。ここを通すと**全テーブルを消して0件で戻す**ことになる。
+        if (! isset($manifest['tables']) || ! is_array($manifest['tables'])) {
+            throw new RuntimeException(
+                'manifest.json にテーブルの一覧がありません。バックアップが壊れている可能性があります: '.$source,
+            );
+        }
+
         // version 1 は fputcsv の既定エスケープ（\）で書かれている
         $escape = $version >= 2 ? '' : '\\';
 

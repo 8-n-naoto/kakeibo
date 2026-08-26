@@ -359,7 +359,12 @@ class TransactionImportController extends Controller
         // 取り込むかどうかとは独立（今回は取り込むが次回からは外す、もできる）
         $learned = [];
 
-        foreach ($validated['rows'] as $row) {
+        // rows[0] が文字列のような壊れた入力だと、rows.* のどのルールにも当たらず
+        // validated() から 'rows' ごと消える（親の配列は「中身が検証済みの分だけ」返るため）。
+        // $validated['rows'] を直接触ると Undefined array key で500になる。
+        $rows = is_array($validated['rows'] ?? null) ? $validated['rows'] : [];
+
+        foreach ($rows as $row) {
             if (! is_array($row) || empty($row['ignore']) || empty($row['shop_name'])) {
                 continue;
             }
@@ -375,7 +380,7 @@ class TransactionImportController extends Controller
         $learnedIgnores = count($learned);
 
         // 行が配列でない入力（rows[0]=abc など）を渡されても落ちないようにする
-        $targets = collect($validated['rows'])
+        $targets = collect($rows)
             ->filter(fn ($row) => is_array($row) && ! empty($row['import']));
 
         if ($targets->isEmpty()) {
@@ -481,7 +486,13 @@ class TransactionImportController extends Controller
         // 次回、同じ並びのCSVで同じ手直しをしなくて済むように覚えておく
         $meta = (array) $request->session()->get(self::SESSION_META, []);
 
-        if (! empty($meta['manual']) && ! empty($meta['signature']) && ! empty($meta['detected'])) {
+        // 見出しの行が分からないままの指定は覚えない。
+        // 印はヘッダー行の中身から作るので、行が決まっていないと次回に当てようがない。
+        $detectedMapping = (array) ($meta['detected'] ?? []);
+
+        if (! empty($meta['manual'])
+            && ! empty($meta['signature'])
+            && ($detectedMapping['header_row'] ?? null) !== null) {
             try {
                 ImportProfile::remember($meta['signature'], $meta['detected'], $meta['file_name'] ?? null);
             } catch (Throwable $e) {

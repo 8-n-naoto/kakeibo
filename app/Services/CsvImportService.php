@@ -227,10 +227,15 @@ class CsvImportService
      */
     private function signatureOf(array $records, ?int $headerRow): ?string
     {
-        // 見出しの行が見つからないCSVは、列数くらいでしか見分けようがない。
-        // 列数だけで「同じカード会社」と決めつけると、まったく別のCSVに
-        // 前回の対応を当ててしまうので、その場合は覚えないことにする。
-        if ($headerRow === null || ! isset($records[$headerRow])) {
+        // 見出しの行を自動で見つけられなかったCSVは、先頭行の中身を印にする。
+        // ここで null を返すと「列A,列B,列C」のように**見出しはあるが語彙が分からない**
+        // CSVの対応を覚えられず、毎月おなじ手直しをやり直すことになる。
+        // 「列数だけで同じカード会社と決めつける」危険を避けるため、印はあくまで
+        // 行の**中身**から作る。覚えるかどうかは、確定側が「ヘッダー行が決まっているか」
+        // （＝人が指定したか自動で見つかったか）で判断する。
+        $headerRow ??= 0;
+
+        if (! isset($records[$headerRow])) {
             return null;
         }
 

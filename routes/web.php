@@ -29,10 +29,14 @@ Route::post(CspReportController::path(), CspReportController::class)
     // CSRF検証も外す。除外リストに入れるだけでは足りない（ミドルウェア自体は動き続け、
     // 応答に XSRF-TOKEN クッキーを足そうとして $request->session() を触るため、
     // StartSession を外したこの経路は「Session store not set on request」で 500 になる）。
+    // CSRFミドルウェアの**クラス名はLaravelのバージョンで変わる**（12まで ValidateCsrfToken、
+    // 13から PreventRequestForgery）。片方だけ書くと除外が黙って効かなくなるので両方並べる。
+    // 除外リストに存在しないクラス名が混ざっていても Laravel 側で無視される。
     ->withoutMiddleware([
         \Illuminate\Session\Middleware\StartSession::class,
         \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-        \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'Illuminate\\Foundation\\Http\\Middleware\\PreventRequestForgery',
+        'Illuminate\\Foundation\\Http\\Middleware\\ValidateCsrfToken',
     ])
     ->name('csp-report');
 
